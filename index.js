@@ -62,6 +62,43 @@ app.get('/players', async (req, res) => {
   }
 });
 
+// GET /players?search=lebron
+app.get('/players', async (req, res) => {
+  try {
+    const search = req.query.search;
+    if (!search) {
+      return res.status(400).json({ error: 'Missing search parameter' });
+    }
+
+    const response = await axios.get('https://api.balldontlie.io/v1/players', {
+      params: { search },
+      headers: {
+        Authorization: `Bearer ${BALLDONTLIE_API_KEY}`
+      }
+    });
+
+    const data = response.data;
+
+    const players = (data.data || []).map((p) => ({
+      id: p.id,
+      first_name: p.first_name,
+      last_name: p.last_name,
+      position: p.position,
+      team_name: p.team?.full_name || null
+    }));
+
+    res.json({ players });
+  } catch (err) {
+    console.error('Error in /players:', err?.response?.data || err.message);
+    res.status(500).json({
+      error: 'Failed to fetch player data',
+      details: err?.response?.data || err.message
+    });
+  }
+});
+
+
 app.listen(PORT, () => {
   console.log(`🚀 theplayerindex-nba-api running on port ${PORT}`);
 });
+
