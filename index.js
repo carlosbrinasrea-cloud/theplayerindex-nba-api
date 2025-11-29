@@ -97,8 +97,59 @@ app.get('/players', async (req, res) => {
   }
 });
 
+// GET /season-averages?playerId=123&season=2024
+app.get('/season-averages', async (req, res) => {
+  try {
+    const { playerId, season } = req.query;
+    if (!playerId) {
+      return res.status(400).json({ error: 'Missing required playerId parameter' });
+    }
+
+    // default to current season if not specified
+    const seasonToUse = season || 2024;
+
+    const response = await axios.get('https://api.balldontlie.io/v1/season_averages', {
+      params: { 'season': seasonToUse, 'player_ids[]': playerId },
+      headers: {
+        Authorization: `Bearer ${BALLDONTLIE_API_KEY}`
+      }
+    });
+
+    const data = response.data.data?.[0] || null;
+
+    if (!data) {
+      return res.json({ averages: null });
+    }
+
+    const averages = {
+      games_played: data.games_played,
+      min: data.min,
+      ppg: data.pts,
+      rpg: data.reb,
+      apg: data.ast,
+      spg: data.stl,
+      bpg: data.blk,
+      turnover: data.turnover,
+      fg_pct: data.fg_pct,
+      fg3_pct: data.fg3_pct,
+      ft_pct: data.ft_pct
+    };
+
+    res.json({ averages });
+
+  } catch (err) {
+    console.error('Error in /season-averages:', err?.response?.data || err.message);
+    res.status(500).json({
+      error: 'Failed to fetch season averages',
+      details: err?.response?.data || err.message
+    });
+  }
+});
+
+
 
 app.listen(PORT, () => {
   console.log(`🚀 theplayerindex-nba-api running on port ${PORT}`);
 });
+
 
